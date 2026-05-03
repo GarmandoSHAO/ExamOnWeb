@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}考试大厅{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>🏠 考试大厅</h1>
+  <p>欢迎回来，{{ session.name }}！选择下方考试开始答题。</p>
+</div>
+
+{% if exams %}
+<div class="exam-grid">
+  {% for exam in exams %}
+  {% set rec = records.get(exam.id) %}
+  <div class="exam-card">
+    <div class="exam-card-header">
+      <h3>{{ exam.title }}</h3>
+      <div style="margin-top:.5rem;font-size:.8rem;opacity:.85">{{ exam.description or '暂无描述' }}</div>
+    </div>
+    <div class="exam-card-body">
+      <div class="exam-meta">
+        <span>⏱ {{ exam.duration }} 分钟</span>
+        <span>✅ 及格线 {{ exam.pass_score }}%</span>
+        {% if exam.shuffle %}<span>🔀 题目随机</span>{% endif %}
+      </div>
+      {% if rec and rec.finished_at %}
+        <div style="background:#f8fafc;border-radius:8px;padding:.85rem;margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:.85rem;color:#64748b">上次成绩</span>
+            {% if rec.passed %}
+              <span class="badge badge-success">✓ 通过</span>
+            {% else %}
+              <span class="badge badge-danger">✗ 未通过</span>
+            {% endif %}
+          </div>
+          <div style="font-size:1.5rem;font-weight:700;color:#1e293b;margin:.3rem 0">
+            {{ rec.score }} / {{ rec.total }}
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:{{ (rec.score/rec.total*100)|int if rec.total else 0 }}%"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem">
+          <a href="{{ url_for('exam_result', record_id=rec.id) }}" class="btn btn-secondary btn-sm" style="flex:1;justify-content:center">查看详情</a>
+          <a href="{{ url_for('start_exam', exam_id=exam.id) }}" class="btn btn-outline btn-sm" style="flex:1;justify-content:center">再次作答</a>
+        </div>
+      {% elif rec and not rec.finished_at %}
+        <div class="badge badge-warning" style="margin-bottom:.75rem">⏸ 答题中</div>
+        <a href="{{ url_for('start_exam', exam_id=exam.id) }}" class="btn btn-warning" style="width:100%;justify-content:center">继续作答</a>
+      {% else %}
+        <a href="{{ url_for('start_exam', exam_id=exam.id) }}" class="btn btn-primary" style="width:100%;justify-content:center">开始答题 →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="icon">📭</div>
+    <div style="font-size:1.1rem;font-weight:600;margin-bottom:.5rem">暂无可用考试</div>
+    <p>当前没有已发布的考试，请稍后再试。</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

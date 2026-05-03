@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}考试管理{% endblock %}
+{% block content %}
+<div class="page-header flex justify-between items-center">
+  <div>
+    <h1>📋 考试管理</h1>
+    <p>创建并管理所有考试</p>
+  </div>
+  <a href="{{ url_for('admin_exam_edit') }}" class="btn btn-primary">➕ 新建考试</a>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>考试名称</th><th>题数/总分</th><th>时长</th><th>及格线</th><th>状态</th><th>创建者</th><th>创建时间</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          {% for exam in exams %}
+          <tr>
+            <td>
+              <strong>{{ exam.title }}</strong>
+              {% if exam.description %}<div style="font-size:.8rem;color:#94a3b8;margin-top:.15rem">{{ exam.description[:40] }}{% if exam.description|length > 40 %}...{% endif %}</div>{% endif %}
+            </td>
+            <td>{{ exam.qcount }} 题</td>
+            <td>{{ exam.duration }}分钟</td>
+            <td>{{ exam.pass_score }}%</td>
+            <td>
+              {% if exam.status == 'published' %}<span class="badge badge-success">● 已发布</span>
+              {% elif exam.status == 'closed' %}<span class="badge badge-secondary">■ 已关闭</span>
+              {% else %}<span class="badge badge-warning">○ 草稿</span>{% endif %}
+            </td>
+            <td>{{ exam.creator or '管理员' }}</td>
+            <td style="color:#64748b;font-size:.8rem">{{ exam.created_at[:10] }}</td>
+            <td>
+              <div style="display:flex;gap:.35rem;flex-wrap:wrap">
+                <a href="{{ url_for('admin_exam_questions', exam_id=exam.id) }}" class="btn btn-secondary btn-sm">题目</a>
+                <a href="{{ url_for('admin_exam_edit', exam_id=exam.id) }}" class="btn btn-secondary btn-sm">编辑</a>
+                {% if exam.status != 'published' %}
+                <form method="POST" action="{{ url_for('admin_exam_status', exam_id=exam.id, action='publish') }}" style="display:inline">
+                  <button class="btn btn-success btn-sm">发布</button>
+                </form>
+                {% else %}
+                <form method="POST" action="{{ url_for('admin_exam_status', exam_id=exam.id, action='close') }}" style="display:inline">
+                  <button class="btn btn-warning btn-sm">关闭</button>
+                </form>
+                {% endif %}
+                <form method="POST" action="{{ url_for('admin_exam_delete', exam_id=exam.id) }}" style="display:inline"
+                      onsubmit="return confirm('确定删除「{{ exam.title }}」及所有相关数据？此操作不可撤销！')">
+                  <button class="btn btn-danger btn-sm">删除</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:2.5rem">
+            暂无考试，<a href="{{ url_for('admin_exam_edit') }}">立即创建</a>
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

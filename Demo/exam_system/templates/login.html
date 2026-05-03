@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>登录 - 在线考试系统</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;align-items:center;justify-content:center}
+.login-wrap{width:100%;max-width:420px;padding:1rem}
+.login-card{background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden}
+.login-header{padding:2.5rem 2.5rem 1.5rem;text-align:center}
+.login-header .logo{font-size:3rem;margin-bottom:.5rem}
+.login-header h1{font-size:1.5rem;color:#1e293b;font-weight:700}
+.login-header p{color:#64748b;font-size:.9rem;margin-top:.3rem}
+.login-body{padding:0 2.5rem 2.5rem}
+.form-group{margin-bottom:1.25rem}
+.form-group label{display:block;font-size:.875rem;font-weight:600;color:#374151;margin-bottom:.4rem}
+.form-control{width:100%;padding:.75rem 1rem;border:2px solid #e5e7eb;border-radius:10px;font-size:.95rem;transition:border-color .2s}
+.form-control:focus{outline:none;border-color:#667eea}
+.btn-login{width:100%;padding:.85rem;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn-login:hover{opacity:.9}
+.links{text-align:center;margin-top:1.25rem;font-size:.875rem;color:#64748b}
+.links a{color:#667eea;font-weight:500}
+.alert{padding:.75rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:.875rem;background:#fee2e2;color:#dc2626;border-left:4px solid #dc2626}
+.demo-hint{background:#f0f9ff;border-radius:10px;padding:1rem;margin-bottom:1.5rem;font-size:.8rem;color:#0369a1}
+.demo-hint strong{display:block;margin-bottom:.4rem;color:#0c4a6e}
+.demo-hint code{background:#e0f2fe;padding:.15rem .4rem;border-radius:4px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo">📝</div>
+      <h1>在线考试系统</h1>
+      <p>Online Examination System</p>
+    </div>
+    <div class="login-body">
+      {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in msgs %}<div class="alert">{{ msg }}</div>{% endfor %}
+      {% endwith %}
+
+      <div class="demo-hint">
+        <strong>🔑 演示账号</strong>
+        管理员: <code>admin</code> / <code>admin123</code><br>
+        学生: <code>student</code> / <code>student123</code>
+      </div>
+
+      <form method="POST">
+        <div class="form-group">
+          <label>用户名</label>
+          <input class="form-control" name="username" placeholder="请输入用户名" autofocus required>
+        </div>
+        <div class="form-group">
+          <label>密码</label>
+          <input class="form-control" name="password" type="password" placeholder="请输入密码" required>
+        </div>
+        <button type="submit" class="btn-login">登 录</button>
+      </form>
+      <div class="links">
+        没有账号？<a href="{{ url_for('register') }}">立即注册</a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

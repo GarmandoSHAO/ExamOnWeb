@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}{% if q %}编辑题目{% else %}添加题目{% endif %} - {{ exam.title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{% if q %}✏️ 编辑题目{% else %}➕ 添加题目{% endif %}</h1>
+  <p>{{ exam.title }}</p>
+</div>
+
+<div class="card" style="max-width:750px">
+  <div class="card-body">
+    <form method="POST" id="qform">
+      <div class="form-group">
+        <label>题目类型 *</label>
+        <select class="form-control" name="qtype" id="qtype" onchange="updateForm()">
+          <option value="single"    {% if q and q.qtype=='single'    %}selected{% endif %}>单选题（单个正确选项）</option>
+          <option value="multi"     {% if q and q.qtype=='multi'     %}selected{% endif %}>多选题（多个正确选项）</option>
+          <option value="truefalse" {% if q and q.qtype=='truefalse' %}selected{% endif %}>判断题（对/错）</option>
+          <option value="fillblank" {% if q and q.qtype=='fillblank' %}selected{% endif %}>填空题（文字输入）</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>题目内容 *</label>
+        <textarea class="form-control" name="content" placeholder="请输入题目..." required>{{ q.content if q else '' }}</textarea>
+      </div>
+
+      <!-- 选项（单/多/判断） -->
+      <div id="options-section">
+        <div class="form-group">
+          <label>选项（每个选项一行）</label>
+          <div id="options-inputs">
+            {% set letters = ['A','B','C','D'] %}
+            {% for letter in letters %}
+            <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem">
+              <span class="pill" style="width:32px;text-align:center;font-weight:600">{{ letter }}</span>
+              <input class="form-control" name="opt_{{ letter }}"
+                     value="{% if q and q.options and loop.index0 < q.options|length %}{{ q.options[loop.index0] }}{% endif %}"
+                     placeholder="选项 {{ letter }}">
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="form-group">
+          <label>正确答案 *（单选填 A/B/C/D，多选填 A,B,C，判断填 A 或 B）</label>
+          <input class="form-control" name="answer" id="answer-field"
+                 value="{{ q.answer if q else '' }}" placeholder="例如：A 或 A,B,C"
+                 style="max-width:200px" required>
+        </div>
+      </div>
+
+      <!-- 填空答案 -->
+      <div id="fillblank-section" style="display:none">
+        <div class="form-group">
+          <label>正确答案 *（填空内容，不区分大小写）</label>
+          <input class="form-control" name="answer_fill"
+                 value="{{ q.answer if q and q.qtype=='fillblank' else '' }}"
+                 placeholder="请输入正确答案" style="max-width:300px">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>题目分值</label>
+          <input class="form-control" type="number" name="score" value="{{ q.score if q else 10 }}" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label>解析说明（可选）</label>
+          <input class="form-control" name="explanation" value="{{ q.explanation if q else '' }}" placeholder="答题解析或提示">
+        </div>
+      </div>
+
+      <hr class="divider">
+      <div style="display:flex;gap:.75rem">
+        <button type="submit" class="btn btn-primary" onclick="return prepareSubmit()">💾 保存题目</button>
+        <a href="{{ url_for('admin_exam_questions', exam_id=exam.id) }}" class="btn btn-secondary">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function updateForm() {
+  const t = document.getElementById('qtype').value;
+  const isBlank = t === 'fillblank';
+  const isTF    = t === 'truefalse';
+  document.getElementById('options-section').style.display = isBlank ? 'none' : '';
+  document.getElementById('fillblank-section').style.display = isBlank ? '' : 'none';
+
+  if (isTF) {
+    document.querySelector('input[name="opt_A"]').value = '正确';
+    document.querySelector('input[name="opt_B"]').value = '错误';
+    document.querySelector('input[name="opt_C"]').value = '';
+    document.querySelector('input[name="opt_D"]').value = '';
+    document.getElementById('answer-field').placeholder = 'A（正确）或 B（错误）';
+  }
+}
+
+function prepareSubmit() {
+  const t = document.getElementById('qtype').value;
+  if (t === 'fillblank') {
+    const fill = document.querySelector('input[name="answer_fill"]').value.trim();
+    // copy to answer field  
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.name = 'answer';
+    hidden.value = fill;
+    document.getElementById('qform').appendChild(hidden);
+  }
+  return true;
+}
+
+updateForm();
+</script>
+{% endblock %}

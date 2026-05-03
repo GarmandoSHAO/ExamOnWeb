@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}题目管理 - {{ exam.title }}{% endblock %}
+{% block content %}
+<div class="page-header flex justify-between items-center flex-wrap gap-2">
+  <div>
+    <h1>📝 题目管理</h1>
+    <p>{{ exam.title }} · 共 {{ questions|length }} 题 · 总分 {{ total_score }} 分</p>
+  </div>
+  <div style="display:flex;gap:.75rem">
+    <a href="{{ url_for('admin_exam_edit', exam_id=exam.id) }}" class="btn btn-secondary btn-sm">✏️ 编辑考试</a>
+    <a href="{{ url_for('admin_question_edit', exam_id=exam.id) }}" class="btn btn-primary">➕ 添加题目</a>
+  </div>
+</div>
+
+{% if questions %}
+{% for q in questions %}
+<div class="card" style="margin-bottom:.85rem">
+  <div class="card-body" style="padding:1.25rem">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
+          <span class="badge badge-info">第 {{ loop.index }} 题</span>
+          <span class="badge badge-secondary">
+            {% if q.qtype=='single' %}单选题{% elif q.qtype=='multi' %}多选题{% elif q.qtype=='truefalse' %}判断题{% else %}填空题{% endif %}
+          </span>
+          <span class="badge badge-warning">{{ q.score }} 分</span>
+        </div>
+        <div style="font-size:.95rem;font-weight:500;color:#1e293b;margin-bottom:.5rem">{{ q.content }}</div>
+        {% if q.options %}
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem">
+          {% for opt in q.options %}
+          <span style="font-size:.8rem;color:#64748b;background:#f8fafc;padding:.2rem .5rem;border-radius:4px">
+            {{ ['A','B','C','D'][loop.index0] }}: {{ opt }}
+          </span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div style="font-size:.85rem">
+          <span style="color:#16a34a;font-weight:600">✓ 答案：{{ q.answer }}</span>
+          {% if q.explanation %}<span style="color:#94a3b8;margin-left:1rem">💡 {{ q.explanation }}</span>{% endif %}
+        </div>
+      </div>
+      <div style="display:flex;gap:.35rem;flex-shrink:0">
+        <a href="{{ url_for('admin_question_edit', exam_id=exam.id, qid=q.id) }}" class="btn btn-secondary btn-sm">编辑</a>
+        <form method="POST" action="{{ url_for('admin_question_delete', qid=q.id) }}"
+              onsubmit="return confirm('确定删除这道题？')">
+          <button class="btn btn-danger btn-sm">删除</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="icon">📭</div>
+    <div style="font-size:1rem;font-weight:600;margin-bottom:.5rem">还没有题目</div>
+    <a href="{{ url_for('admin_question_edit', exam_id=exam.id) }}" class="btn btn-primary" style="margin-top:.75rem">添加第一道题</a>
+  </div>
+</div>
+{% endif %}
+
+<div style="margin-top:1rem">
+  <a href="{{ url_for('admin_exams') }}" class="btn btn-secondary">← 返回考试列表</a>
+</div>
+{% endblock %}

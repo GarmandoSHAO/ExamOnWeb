@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}成绩管理{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>📈 成绩管理</h1>
+  <p>查看所有学生的考试成绩记录</p>
+</div>
+
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-body" style="padding:.85rem 1.25rem">
+    <form method="GET" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+      <label style="font-size:.875rem;font-weight:500;white-space:nowrap">筛选考试：</label>
+      <select name="exam_id" class="form-control" style="max-width:280px">
+        <option value="">全部考试</option>
+        {% for exam in exams %}
+        <option value="{{ exam.id }}" {% if selected_exam == exam.id %}selected{% endif %}>{{ exam.title }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+      {% if selected_exam %}<a href="{{ url_for('admin_records') }}" class="btn btn-secondary btn-sm">清除</a>{% endif %}
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>共 {{ records|length }} 条记录</h3>
+  </div>
+  <div class="card-body" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>学生</th><th>账号</th><th>考试</th><th>得分</th><th>得分率</th><th>及格</th><th>用时</th><th>完成时间</th></tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          {% set pct = (r.score / r.total * 100)|int if r.total else 0 %}
+          <tr>
+            <td><strong>{{ r.uname }}</strong></td>
+            <td style="color:#94a3b8">{{ r.username }}</td>
+            <td>{{ r.etitle }}</td>
+            <td><strong>{{ r.score }}</strong> / {{ r.total }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:{{ pct }}%"></div></div>
+                <span style="font-size:.8rem;color:#64748b">{{ pct }}%</span>
+              </div>
+            </td>
+            <td>{% if r.passed %}<span class="badge badge-success">通过</span>{% else %}<span class="badge badge-danger">未通过</span>{% endif %}</td>
+            <td>{{ (r.time_used//60) }}分{{ (r.time_used%60) }}秒</td>
+            <td style="color:#64748b;font-size:.8rem">{{ r.finished_at }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:2.5rem">暂无成绩记录</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
