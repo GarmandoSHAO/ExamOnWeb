@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>注册</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#4f46e5,#7c3aed);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.box{width:100%;max-width:400px;background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.22);overflow:hidden}
+.top{padding:2rem 2.5rem 1.3rem;text-align:center}
+.top .logo{font-size:2.4rem;margin-bottom:.4rem}
+.top h1{font-size:1.3rem;color:#1e293b;font-weight:700}
+.body{padding:0 2.5rem 2rem}
+.fg{margin-bottom:1rem}
+label{display:block;font-size:.82rem;font-weight:600;color:#374151;margin-bottom:.3rem}
+input{width:100%;padding:.65rem 1rem;border:2px solid #e5e7eb;border-radius:8px;font-size:.88rem;outline:none;transition:border-color .2s}
+input:focus{border-color:#4f46e5}
+.btn{width:100%;padding:.78rem;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:9px;font-size:.93rem;font-weight:600;cursor:pointer}
+.btn:hover{opacity:.9}
+.links{text-align:center;margin-top:.9rem;font-size:.82rem;color:#64748b}
+.links a{color:#4f46e5}
+.alert{padding:.65rem .9rem;border-radius:7px;font-size:.82rem;background:#fef2f2;color:#dc2626;border-left:3px solid #dc2626;margin-bottom:.9rem}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="top"><div class="logo">👤</div><h1>创建账号</h1></div>
+  <div class="body">
+    {% with msgs=get_flashed_messages(with_categories=true) %}{% for c,m in msgs %}<div class="alert">{{m}}</div>{% endfor %}{% endwith %}
+    <form method="POST">
+      <div class="fg"><label>姓名</label><input name="name" placeholder="请输入真实姓名" required></div>
+      <div class="fg"><label>用户名</label><input name="username" placeholder="设置登录用户名" required></div>
+      <div class="fg"><label>密码</label><input name="password" type="password" placeholder="设置登录密码" required></div>
+      <button type="submit" class="btn">注 册</button>
+    </form>
+    <div class="links">已有账号？<a href="{{ url_for('login') }}">立即登录</a></div>
+  </div>
+</div>
+</body></html>

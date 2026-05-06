@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% block title %}{% if q %}编辑题目{% else %}添加题目{% endif %}{% endblock %}
+{% block content %}
+<div class="ph">
+  <div>
+    <h1>{% if q %}✏️ 编辑题目{% else %}➕ 添加题目{% endif %}</h1>
+    <p>所属考试：{{ exam.title }}</p>
+  </div>
+  <a href="{{ url_for('admin_exam_questions', exam_id=exam.id) }}" class="btn bsec">← 题目列表</a>
+</div>
+
+<div class="card" style="max-width:820px">
+  <div class="card-bd">
+    <form method="POST" id="qf">
+      <input type="hidden" name="back_to" value="{{ 'bank' if from_bank=='1' else 'exam' }}">
+
+      <div class="fg"><label>题目类型 *</label>
+        <select class="fc" name="qtype" id="qtype" onchange="switchType()">
+          <option value="single"    {% if q and q.qtype=='single'    %}selected{% endif %}>单选题（A/B/C/D 选一）</option>
+          <option value="multi"     {% if q and q.qtype=='multi'     %}selected{% endif %}>多选题（多个正确选项）</option>
+          <option value="truefalse" {% if q and q.qtype=='truefalse' %}selected{% endif %}>判断题（正确/错误）</option>
+          <option value="fillblank" {% if q and q.qtype=='fillblank' %}selected{% endif %}>填空题（文字输入）</option>
+          <option value="coding"    {% if q and q.qtype=='coding'    %}selected{% endif %}>编程题（代码沙箱评测）</option>
+        </select>
+      </div>
+
+      <div class="fg"><label>题目内容 *（支持 Markdown 基础格式）</label>
+        <textarea class="fc" name="content" id="content" placeholder="请输入题目描述…" required style="min-height:110px">{{ q.content if q else '' }}</textarea>
+      </div>
+
+      <!-- 选项区（单选/多选/判断） -->
+      <div id="sec-opts">
+        <div class="fg"><label>选项（A/B/C/D）</label>
+          {% for L in ['A','B','C','D'] %}
+          <div class="flex aic gap1 mb1">
+            <span class="pill" style="width:34px;text-align:center">{{ L }}</span>
+            <input class="fc" name="opt_{{ L }}" id="opt_{{ L }}"
+                   value="{% if q and q.options and loop.index0<q.options|length %}{{ q.options[loop.index0] }}{% endif %}"
+                   placeholder="选项 {{ L }}">
+          </div>
+          {% endfor %}
+        </div>
+        <div class="fg"><label>正确答案（单选填 A，多选填 A,B，判断填 A 或 B）</label>
+          <input class="fc" name="answer" id="ans-choice" style="max-width:200px"
+                 value="{{ q.answer if q and q.qtype!='coding' else '' }}" placeholder="如：A 或 A,B,D">
+        </div>
+      </div>
+
+      <!-- 填空区 -->
+      <div id="sec-fill" style="display:none">
+        <div class="fg"><label>正确答案（不区分大小写）</label>
+          <input class="fc" name="answer_fill" style="max-width:280px"
+                 value="{{ q.answer if q and q.qtype=='fillblank' else '' }}" placeholder="输入正确答案">
+        </div>
+      </div>
+
+      <!-- 编程题区 -->
+      <div id="sec-code" style="display:none">
+
+        <!-- 评分规则说明 -->
+        <div class="alert al-i" style="font-size:.82rem;margin-bottom:1rem">
+          <div>
+            <strong>📊 三段式评分规则：</strong><br>
+            <span id="score-rule-hint">加载中…</span>
+          </div>
+        </div>
+
+        <div class="fr">
+          <div class="fg"><label>函数名（学生必须实现的函数名）</label>
+            <input class="fc" name="func_name" value="{{ q.func_name if q else 'solution' }}" placeholder="solution">
+          </div>
+          <div class="fg"><label>函数签名（展示给学生的模板）</label>
+            <input class="fc" name="func_signature"
+                   value="{{ q.func_signature if q else 'def solution():' }}"
+                   placeholder="def solution(nums: list) -> int:">
+          </div>
+        </div>
+
+        <div class="fg">
+          <label>🔑 关键字检查（可选，逗号分隔）</label>
+          <input class="fc" name="keywords" id="kw-input"
+                 value="{{ q.keywords if q and q.keywords else '' }}"
+                 placeholder="例如：for, dict  —— 代码需包含所有关键字才得该项分数，留空则并入测试用例分"
+                 oninput="updateScoreHint()">
+        </div>
+
+        <div class="fr">
+          <div class="fg"><label>随机测试用例数量</label>
+            <input class="fc" type="number" name="num_random" value="{{ q.num_random if q else 5 }}" min="0" max="20">
+          </div>
+          <div class="fg"><label>每用例超时秒数</label>
+            <input class="fc" type="number" name="time_limit" value="{{ q.time_limit if q else 5 }}" min="1" max="30">
+          </div>
+        </div>
+        <div class="fg">
+          <label>固定测试用例（JSON 格式，每项含 input 数组和 output）</label>
+          <div style="font-size:.78rem;color:var(--muted);margin-bottom:.4rem">
+            格式：<code style="background:#f1f5f9;padding:.1rem .4rem;border-radius:3px">[{"input":[参数1,参数2,...],"output":期望返回值}, ...]</code>
+          </div>
+          <textarea class="fc" name="test_cases_json" id="tc-json" style="min-height:140px;font-family:monospace;font-size:.82rem"
+          placeholder='[&#10;  {"input": [[2,7,11,15], 9], "output": [0,1]},&#10;  {"input": [[3,2,4], 6], "output": [1,2]}&#10;]'>{{ q.test_cases|tojson(indent=2) if q and q.test_cases else '[]' }}</textarea>
+        </div>
+      </div>
+
+      <div class="fr">
+        <div class="fg"><label>题目分值</label>
+          <input class="fc" type="number" name="score" value="{{ q.score if q else 10 }}" min="1" max="200">
+        </div>
+        <div class="fg"><label>解析说明（可选）</label>
+          <input class="fc" name="explanation" value="{{ q.explanation if q else '' }}" placeholder="答案解析或提示">
+        </div>
+      </div>
+
+      <hr class="divider">
+      <div class="flex gap1">
+        <button type="submit" class="btn bp" onclick="return prep()">💾 保存题目</button>
+        <a href="{{ url_for('admin_exam_questions', exam_id=exam.id) }}" class="btn bsec">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function switchType(){
+  const t = document.getElementById('qtype').value
+  document.getElementById('sec-opts').style.display = (t==='fillblank'||t==='coding') ? 'none' : ''
+  document.getElementById('sec-fill').style.display = t==='fillblank' ? '' : 'none'
+  document.getElementById('sec-code').style.display = t==='coding'    ? '' : 'none'
+  if(t==='truefalse'){
+    document.getElementById('opt_A').value='正确'
+    document.getElementById('opt_B').value='错误'
+    document.getElementById('opt_C').value=''
+    document.getElementById('opt_D').value=''
+    document.getElementById('ans-choice').placeholder='A（正确）或 B（错误）'
+  }
+}
+function prep(){
+  const t = document.getElementById('qtype').value
+  if(t==='fillblank'){
+    const fill = document.querySelector('input[name="answer_fill"]').value.trim()
+    const h = document.createElement('input'); h.type='hidden'; h.name='answer'; h.value=fill
+    document.getElementById('qf').appendChild(h)
+  }
+  if(t==='coding'){
+    const h = document.createElement('input'); h.type='hidden'; h.name='answer'; h.value=''
+    document.getElementById('qf').appendChild(h)
+  }
+  return true
+}
+switchType()
+function updateScoreHint(){
+  const kw = (document.getElementById('kw-input')||{value:''}).value.trim()
+  const el = document.getElementById('score-rule-hint')
+  if(!el) return
+  if(kw){
+    el.innerHTML = '<b>编译通过 20%</b> + <b>关键字全部命中 20%</b> + <b>测试用例按通过率 60%</b>'
+  } else {
+    el.innerHTML = '<b>编译通过 20%</b> + <b>测试用例按通过率 80%</b>（未配置关键字）'
+  }
+}
+updateScoreHint()
+</script>
+{% endblock %}

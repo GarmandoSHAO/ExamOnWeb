@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}批量导入用户{% endblock %}
+{% block content %}
+<div class="ph">
+  <div><h1>📥 批量导入用户</h1><p>通过 CSV 或 Excel 文件批量创建学生账号</p></div>
+  <a href="{{ url_for('admin_users') }}" class="btn bsec">← 返回用户列表</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;max-width:860px">
+  <!-- 上传区 -->
+  <div class="card">
+    <div class="card-hd"><h3>📁 上传文件</h3></div>
+    <div class="card-bd">
+      <form method="POST" enctype="multipart/form-data" id="upForm">
+        <div class="upload-zone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+          <div class="icon">📄</div>
+          <div style="font-weight:600;margin-bottom:.3rem">点击选择文件</div>
+          <div class="muted">或将文件拖放至此处</div>
+          <div class="muted" style="margin-top:.5rem">支持 .csv{% if has_openpyxl %} / .xlsx{% endif %}</div>
+          <div id="fname" style="margin-top:.75rem;color:var(--pri);font-weight:600;display:none"></div>
+        </div>
+        <input type="file" id="fileInput" name="file"
+               accept=".csv{% if has_openpyxl %},.xlsx,.xls{% endif %}"
+               style="display:none" onchange="showFile(this)">
+        <button type="submit" class="btn bp" style="width:100%;margin-top:1rem;justify-content:center" id="uploadBtn" disabled>
+          📤 开始导入
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 说明区 -->
+  <div>
+    <div class="card">
+      <div class="card-hd"><h3>📋 文件格式要求</h3></div>
+      <div class="card-bd">
+        <div style="font-size:.875rem;line-height:1.8;color:var(--text)">
+          <p style="margin-bottom:.6rem">第一行为表头，支持以下列名：</p>
+          <table style="width:100%;font-size:.82rem">
+            <tr><th style="text-align:left;padding:.25rem .5rem;background:var(--light)">字段</th><th style="text-align:left;padding:.25rem .5rem;background:var(--light)">别名</th><th style="text-align:left;padding:.25rem .5rem;background:var(--light)">必填</th></tr>
+            <tr><td style="padding:.25rem .5rem"><code>username</code></td><td style="padding:.25rem .5rem;color:var(--muted)">用户名、账号</td><td style="padding:.25rem .5rem;color:var(--err)">必填</td></tr>
+            <tr><td style="padding:.25rem .5rem"><code>name</code></td><td style="padding:.25rem .5rem;color:var(--muted)">姓名、真实姓名</td><td style="padding:.25rem .5rem;color:var(--muted)">可选</td></tr>
+            <tr><td style="padding:.25rem .5rem"><code>password</code></td><td style="padding:.25rem .5rem;color:var(--muted)">密码、passwd</td><td style="padding:.25rem .5rem;color:var(--muted)">可选（默认123456）</td></tr>
+          </table>
+          <div class="alert al-i mt2" style="margin-top:.75rem">
+            ⚠️ 重复的用户名将被自动跳过，不会覆盖已有账号。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><h3>⬇️ 下载模板</h3></div>
+      <div class="card-bd">
+        <div class="flex gap1 fw">
+          <a href="{{ url_for('admin_users_template', fmt='csv') }}" class="btn bsec">📄 CSV 模板</a>
+          {% if has_openpyxl %}
+          <a href="{{ url_for('admin_users_template', fmt='xlsx') }}" class="btn bsec">📊 Excel 模板</a>
+          {% endif %}
+        </div>
+        <div class="muted mt1">下载后按格式填写，再上传导入。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showFile(input){
+  const f = input.files[0]
+  if(!f) return
+  document.getElementById('fname').textContent = '✓ ' + f.name
+  document.getElementById('fname').style.display = 'block'
+  document.getElementById('uploadBtn').disabled = false
+}
+const dz = document.getElementById('dropzone')
+dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag')})
+dz.addEventListener('dragleave', ()=>dz.classList.remove('drag'))
+dz.addEventListener('drop', e=>{
+  e.preventDefault(); dz.classList.remove('drag')
+  const f = e.dataTransfer.files[0]
+  if(f){ document.getElementById('fileInput').files = e.dataTransfer.files; showFile(document.getElementById('fileInput')) }
+})
+</script>
+{% endblock %}

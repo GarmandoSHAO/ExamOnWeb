@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% block title %}{{ exam.title }} · 答题{% endblock %}
+{% block content %}
+<div class="flex aic jb fw" style="margin-bottom:1.25rem;gap:1rem">
+  <div>
+    <h1 style="font-size:1.3rem;color:var(--text)">{{ exam.title }}</h1>
+    <p class="muted">共 {{ questions|length }} 题 · 总分 {{ questions|sum(attribute='score') }} 分</p>
+  </div>
+  <div class="flex aic gap1">
+    <span style="background:linear-gradient(135deg,var(--pri),var(--pri2));padding:.35rem 1rem;border-radius:20px;color:#fff;font-size:.88rem">
+      ⏱ 剩余：<strong id="timer">--:--</strong>
+    </span>
+  </div>
+</div>
+
+<!-- 答题进度条 -->
+<div style="background:var(--card);border-radius:10px;padding:.75rem 1.25rem;margin-bottom:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;align-items:center;gap:1rem">
+  <span class="muted" style="font-size:.83rem;white-space:nowrap">答题进度</span>
+  <div class="pbar" style="flex:1"><div class="pfill" id="prog-fill" style="width:0%"></div></div>
+  <span id="prog-text" class="muted" style="font-size:.83rem;white-space:nowrap">0 / {{ questions|length }}</span>
+</div>
+
+<form method="POST" action="{{ url_for('submit_exam', rid=record.id) }}" id="examForm">
+{% for q in questions %}
+<div class="qcard" id="qc_{{ loop.index }}">
+  <div class="qnum">
+    <span>
+      第 {{ loop.index }} 题 ·
+      {% if q.qtype=='single' %}单选题{% elif q.qtype=='multi' %}多选题{% elif q.qtype=='truefalse' %}判断题{% elif q.qtype=='fillblank' %}填空题{% else %}编程题{% endif %}
+      · {{ q.score }} 分
+    </span>
+    <span id="qs_{{ loop.index }}" style="font-size:.75rem;color:var(--muted)">未作答</span>
+  </div>
+
+  <!-- 题目内容 -->
+  <div class="qcontent">{{ q.content | replace('\n','<br>') | replace('**','<strong>') | replace('`','<code>') | safe }}</div>
+
+  <!-- 单选 / 判断 -->
+  {% if q.qtype in ('single','truefalse') %}
+  <div class="opts" data-qid="{{ q.id }}" data-idx="{{ loop.index }}">
+    {% for opt in q.options %}
+    <label class="opt-lb" id="ol_{{ q.id }}_{{ loop.index0 }}">
+      <input type="radio" name="q_{{ q.id }}" value="{{ ['A','B','C','D'][loop.index0] }}"
+             onchange="markDone({{ loop.index }}, this)">
+      <span class="pill">{{ ['A','B','C','D'][loop.index0] }}</span>
+      {{ opt }}
+    </label>
+    {% endfor %}
+  </div>
+
+  <!-- 多选 -->
+  {% elif q.qtype == 'multi' %}
+  <div style="font-size:.78rem;color:var(--pri2);margin-bottom:.5rem">⚠️ 多选题，请选择所有正确选项</div>
+  <div class="opts">
+    {% for opt in q.options %}
+    <label class="opt-lb">
+      <input type="checkbox" name="m_{{ q.id }}" value="{{ ['A','B','C','D'][loop.index0] }}"
+             onchange="markMulti({{ loop.index }}, '{{ q.id }}')">
+      <span class="pill">{{ ['A','B','C','D'][loop.index0] }}</span>
+      {{ opt }}
+    </label>
+    {% endfor %}
+  </div>
+
+  <!-- 填空 -->
+  {% elif q.qtype == 'fillblank' %}
+  <input class="fc" name="q_{{ q.id }}" placeholder="请输入答案"
+         style="max-width:320px" oninput="markDone({{ loop.index }}, this)">
+
+  <!-- 编程题 -->
+  {% elif q.qtype == 'coding' %}
+  <div style="margin-bottom:.75rem">
+    {% if q.func_signature %}
+    <div style="background:#0f172a;border-radius:7px;padding:.65rem 1rem;font-family:monospace;font-size:.85rem;color:#7dd3fc;margin-bottom:.5rem">
+      {{ q.func_signature }}
+    </div>
+    {% endif %}
+    {% if q.test_cases %}
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem">
+      📌 固定用例（共 {{ q.test_cases|length }} 个）：
+      {% for tc in q.test_cases[:2] %}
+      <code style="background:#f1f5f9;padding:.1rem .4rem;border-radius:3px;margin-right:.4rem">
+        输入: {{ tc.input }} → {{ tc.output }}
+      </code>
+      {% endfor %}
+      {% if q.test_cases|length > 2 %}<span>…</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  <div class="code-wrap">
+    <div class="code-toolbar">
+      <span>Python</span>
+      <div class="flex gap1">
+        <button type="button" class="btn bsec btn-xs" onclick="runCode('{{ q.id }}', '{{ q.func_name }}', {{ q.test_cases|tojson }}, {{ q.num_random }}, {{ q.time_limit }})">▶ 运行测试</button>
+        <button type="button" class="btn bsec btn-xs" onclick="clearCode('{{ q.id }}')">清空</button>
+      </div>
+    </div>
+    <textarea class="code-area" name="code_{{ q.id }}" id="code_{{ q.id }}"
+              oninput="markDone({{ loop.index }}, this)"
+              placeholder="{{ q.func_signature or 'def solution():' }}&#10;    # 在这里写你的代码&#10;    pass">{% if q.func_signature %}{{ q.func_signature }}
+    # 在这里写你的代码
+    pass{% endif %}</textarea>
+  </div>
+  <div id="run_result_{{ q.id }}" class="code-result" style="display:none">
+    <div class="cr-head">运行结果</div>
+    <div class="cr-body" id="run_body_{{ q.id }}"></div>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+<!-- 提交区 -->
+<div class="card">
+  <div class="card-bd flex aic jb fw" style="gap:1rem">
+    <div>
+      <div style="font-size:.875rem">已作答 <strong id="done-count" style="color:var(--pri)">0</strong> / {{ questions|length }} 题</div>
+      <div class="pbar" style="width:180px"><div class="pfill" id="prog-fill2" style="width:0%"></div></div>
+    </div>
+    <div class="flex gap1">
+      <a href="{{ url_for('student_dashboard') }}" class="btn bsec"
+         onclick="return confirm('确定退出？当前进度将丢失！')">退出</a>
+      <button type="button" class="btn bp" onclick="confirmSubmit()">📤 提交答卷</button>
+    </div>
+  </div>
+</div>
+</form>
+
+<script>
+const TOTAL = {{ questions|length }};
+const DURATION = {{ exam.duration }} * 60;
+const startedAt = new Date("{{ record.started_at }}".replace(' ','T'));
+let remaining = DURATION - Math.floor((Date.now() - startedAt)/1000);
+const doneSet = new Set();
+
+function updateTimer(){
+  if(remaining <= 0){ document.getElementById('examForm').submit(); return; }
+  const m = Math.floor(remaining/60), s = remaining%60;
+  const el = document.getElementById('timer');
+  el.textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  if(remaining <= 60) el.closest('span').style.background = '#dc2626';
+  remaining--;
+}
+updateTimer(); setInterval(updateTimer, 1000);
+
+function updateProgress(){
+  const n = doneSet.size;
+  const pct = Math.round(n/TOTAL*100);
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-fill2').style.width = pct+'%';
+  document.getElementById('prog-text').textContent = n+' / '+TOTAL;
+  document.getElementById('done-count').textContent = n;
+}
+
+function markDone(idx, el){
+  const val = (el.type==='checkbox') ? el.checked : (el.value||'').trim();
+  if(val){ doneSet.add(idx); document.getElementById('qs_'+idx).textContent='✓ 已作答'; document.getElementById('qs_'+idx).style.color='var(--ok)'; }
+  else { doneSet.delete(idx); document.getElementById('qs_'+idx).textContent='未作答'; document.getElementById('qs_'+idx).style.color=''; }
+  updateProgress();
+}
+
+function markMulti(idx, qid){
+  const checked = document.querySelectorAll(`input[name="m_${qid}"]:checked`).length;
+  if(checked > 0){ doneSet.add(idx); document.getElementById('qs_'+idx).textContent='✓ 已选'+checked+'项'; document.getElementById('qs_'+idx).style.color='var(--ok)'; }
+  else { doneSet.delete(idx); document.getElementById('qs_'+idx).textContent='未作答'; document.getElementById('qs_'+idx).style.color=''; }
+  updateProgress();
+}
+
+function clearCode(qid){
+  document.getElementById('code_'+qid).value='';
+}
+
+function confirmSubmit(){
+  const left = TOTAL - doneSet.size;
+  if(left > 0){
+    if(!confirm(`还有 ${left} 题未作答，确定提交？`)) return;
+  } else {
+    if(!confirm('确定提交答卷？提交后不可修改。')) return;
+  }
+  document.getElementById('examForm').submit();
+}
+
+// 在线运行代码
+async function runCode(qid, funcName, testCases, numRandom, timeLimit){
+  const code = document.getElementById('code_'+qid).value.trim();
+  if(!code){ alert('请先写代码'); return; }
+  const resultDiv = document.getElementById('run_result_'+qid);
+  const bodyDiv   = document.getElementById('run_body_'+qid);
+  resultDiv.style.display = '';
+  bodyDiv.innerHTML = '<div style="color:var(--muted);padding:.5rem">⏳ 运行中，请稍候…</div>';
+  try {
+    const res = await fetch('/api/run_code', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({code, func_name:funcName, test_cases:testCases,
+                            num_random:numRandom, time_limit:timeLimit})
+    });
+    const data = await res.json();
+    renderResult(bodyDiv, data, qid);
+  } catch(e){
+    bodyDiv.innerHTML = `<div style="color:var(--err)">请求失败：${e}</div>`;
+  }
+}
+
+function renderResult(el, data, qid){
+  if(data.error && !data.details?.length){
+    el.innerHTML = `<div style="color:var(--err);white-space:pre-wrap">❌ ${data.error}</div>`; return;
+  }
+  const passed = data.passed, total = data.total;
+  let html = `<div style="font-weight:600;margin-bottom:.5rem;color:${passed===total?'var(--ok)':'var(--warn)'}">
+    ${passed===total?'✅':'⚠️'} 通过 ${passed}/${total} 个测试用例
+  </div>`;
+  (data.details||[]).forEach((r,i)=>{
+    const cls = r.is_random ? 'rand' : (r.ok ? 'pass' : 'fail');
+    const icon = r.ok ? '✓' : (r.is_random ? '~' : '✗');
+    const label = r.is_random ? '[随机用例]' : '[固定用例]';
+    html += `<div class="tc-row ${cls}">
+      <span class="tc-icon">${icon}</span>
+      <div style="flex:1;font-size:.8rem">
+        <span style="color:var(--muted)">${label}</span>
+        输入: <code>${JSON.stringify(r.input)}</code>
+        ${!r.is_random ? `期望: <code>${JSON.stringify(r.expected)}</code>` : ''}
+        实际: <code>${r.actual||'(错误)'}</code>
+        ${r.error ? `<div style="color:var(--err);white-space:pre-wrap;font-size:.75rem">${r.error}</div>` : ''}
+      </div>
+    </div>`;
+  });
+  if(data.error) html += `<div style="color:var(--warn);font-size:.78rem;margin-top:.4rem">⚠️ ${data.error}</div>`;
+  el.innerHTML = html;
+}
+
+// Tab键支持
+document.querySelectorAll('.code-area').forEach(ta=>{
+  ta.addEventListener('keydown', e=>{
+    if(e.key==='Tab'){
+      e.preventDefault();
+      const s=ta.selectionStart, end=ta.selectionEnd;
+      ta.value=ta.value.substring(0,s)+'    '+ta.value.substring(end);
+      ta.selectionStart=ta.selectionEnd=s+4;
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}控制台{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>📊 控制台</h1><p>系统数据总览</p></div>
+  <div class="flex gap1">
+    <a href="{{ url_for('admin_exam_edit') }}" class="btn bp">➕ 新建考试</a>
+    <a href="{{ url_for('admin_users_import') }}" class="btn bsec">📥 批量导入用户</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="si b">📋</div><div><div class="sv">{{ stats.exams }}</div><div class="sl">考试总数</div></div></div>
+  <div class="stat"><div class="si p">🗂</div><div><div class="sv">{{ stats.questions }}</div><div class="sl">题目总数</div></div></div>
+  <div class="stat"><div class="si g">👥</div><div><div class="sv">{{ stats.users }}</div><div class="sl">注册学生</div></div></div>
+  <div class="stat"><div class="si o">📝</div><div><div class="sv">{{ stats.records }}</div><div class="sl">考试次数</div></div></div>
+  <div class="stat"><div class="si i">📈</div><div><div class="sv">{{ stats.pass_rate }}%</div><div class="sl">整体通过率</div></div></div>
+</div>
+
+<div class="card">
+  <div class="card-hd"><h3>📋 最近考试记录</h3><a href="{{ url_for('admin_records') }}" class="btn bsec btn-sm">查看全部</a></div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>学生</th><th>考试</th><th>得分</th><th>结果</th><th>完成时间</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for r in recent %}
+        <tr>
+          <td><strong>{{ r.uname }}</strong></td>
+          <td>{{ r.etitle }}</td>
+          <td><strong>{{ r.score }}</strong>/{{ r.total }}</td>
+          <td>{% if r.passed %}<span class="badge bv-g">✓ 通过</span>{% else %}<span class="badge bv-r">✗ 未通</span>{% endif %}</td>
+          <td class="muted">{{ r.finished_at }}</td>
+          <td><a href="{{ url_for('admin_record_detail', rid=r.id) }}" class="btn bsec btn-xs">详情</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="tc muted" style="padding:2rem">暂无记录</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

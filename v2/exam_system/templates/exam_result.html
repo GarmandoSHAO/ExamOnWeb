@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}考试结果{% endblock %}
+{% block content %}
+{% set pct = (rec.score/rec.total*100)|int if rec.total else 0 %}
+
+<div class="res-hero">
+  <div style="font-size:1rem;opacity:.85">{{ rec.title }}</div>
+  <div class="res-score">{{ rec.score }}<span style="font-size:1.5rem;opacity:.6"> / {{ rec.total }}</span></div>
+  <div class="res-badge {% if rec.passed %}rb-pass{% else %}rb-fail{% endif %}">
+    {% if rec.passed %}🎉 恭喜通过！{% else %}😞 未通过，继续加油{% endif %}
+  </div>
+  <div style="margin-top:1rem;display:flex;justify-content:center;gap:1.5rem;font-size:.85rem;opacity:.85;flex-wrap:wrap">
+    <span>得分率 {{ pct }}%</span>
+    <span>及格线 {{ rec.pass_score }}%</span>
+    <span>用时 {{ rec.time_used//60 }}分{{ rec.time_used%60 }}秒</span>
+  </div>
+  <div class="pbar" style="max-width:300px;margin:1rem auto 0;height:10px;background:rgba(255,255,255,.25)">
+    <div style="height:100%;border-radius:999px;background:#fff;width:{{ pct }}%"></div>
+  </div>
+</div>
+
+<div class="ph"><h1>📋 答题详情</h1></div>
+
+{% for q in questions %}
+{% set ans = answers.get(q.id|string, {}) %}
+{% set is_ok = ans.get('ok', False) %}
+{% set is_coding = q.qtype == 'coding' %}
+
+<div class="qcard {% if is_ok %}ok{% else %}err{% endif %}">
+  <div class="qnum">
+    <span>
+      第 {{ loop.index }} 题 ·
+      {% if q.qtype=='single' %}单选{% elif q.qtype=='multi' %}多选{% elif q.qtype=='truefalse' %}判断{% elif q.qtype=='fillblank' %}填空{% else %}编程{% endif %}
+    </span>
+    <span>
+      {% if is_coding %}
+        {% set earned = ans.get('earned', 0) %}
+        <span class="badge {% if earned == q.score %}bv-g{% elif earned > 0 %}bv-w{% else %}bv-r{% endif %}">
+          +{{ earned }}/{{ q.score }}分
+        </span>
+      {% else %}
+        {% if is_ok %}<span class="badge bv-g">✓ +{{ q.score }}分</span>
+        {% else %}<span class="badge bv-r">✗ 0分</span>{% endif %}
+      {% endif %}
+    </span>
+  </div>
+
+  <div class="qcontent">{{ q.content | replace('\n','<br>') | replace('**','<strong>') | safe }}</div>
+
+  <!-- 选择/判断 -->
+  {% if q.qtype in ('single','truefalse','multi') and q.options %}
+  <div class="opts" style="pointer-events:none">
+    {% for opt in q.options %}
+    {% set letter = ['A','B','C','D'][loop.index0] %}
+    {% set user_ans = ans.get('user','') %}
+    {% set correct_ans = ans.get('correct','') %}
+    {% set is_user = letter in user_ans %}
+    {% set is_correct = letter in correct_ans %}
+    <div class="opt-lb" style="
+      {% if is_correct %}background:#f0fdf4;border-color:var(--ok);
+      {% elif is_user and not is_correct %}background:#fef2f2;border-color:var(--err);{% endif %}">
+      <span class="pill">{{ letter }}</span>
+      {{ opt }}
+      <span style="margin-left:auto;font-size:.8rem">
+        {% if is_correct %}<span style="color:var(--ok);font-weight:700">✓ 正确</span>{% endif %}
+        {% if is_user and not is_correct %}<span style="color:var(--err);font-weight:700">✗ 你选</span>{% endif %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- 填空 -->
+  {% elif q.qtype == 'fillblank' %}
+  <div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:.875rem;margin-top:.5rem">
+    <span>你的答案：<strong style="color:{% if is_ok %}var(--ok){% else %}var(--err){% endif %}">{{ ans.get('user') or '（未作答）' }}</strong></span>
+    <span>正确答案：<strong style="color:var(--ok)">{{ ans.get('correct','') }}</strong></span>
+  </div>
+
+  <!-- 编程题 -->
+  {% elif q.qtype == 'coding' %}
+  {% set sb = ans.get('sandbox') %}
+  {% if sb %}
+  <div style="margin-bottom:.75rem">
+    {% set p = sb.passed %} {% set t = sb.total %}
+    <div style="font-weight:600;color:{% if p==t %}var(--ok){% elif p>0 %}var(--warn){% else %}var(--err){% endif %};margin-bottom:.5rem">
+      {% if p==t %}✅{% elif p>0 %}⚠️{% else %}❌{% endif %}
+      通过 {{ p }}/{{ t }} 个测试用例
+    </div>
+    {% if sb.error %}
+    <div style="background:#fef2f2;border-radius:7px;padding:.6rem .9rem;font-size:.8rem;color:var(--err);font-family:monospace;white-space:pre-wrap;margin-bottom:.5rem">{{ sb.error }}</div>
+    {% endif %}
+    <div class="code-result" style="display:block">
+      <div class="cr-head">测试用例详情</div>
+      <div class="cr-body">
+        {% for r in (sb.details or []) %}
+        <div class="tc-row {% if r.is_random %}rand{% elif r.ok %}pass{% else %}fail{% endif %}">
+          <span class="tc-icon">{% if r.ok %}✓{% elif r.is_random %}～{% else %}✗{% endif %}</span>
+          <div style="flex:1;font-size:.8rem">
+            <span style="color:var(--muted)">{% if r.is_random %}[随机用例]{% else %}[固定用例]{% endif %}</span>
+            输入: <code>{{ r.input }}</code>
+            {% if not r.is_random %}期望: <code>{{ r.expected }}</code>{% endif %}
+            实际: <code>{{ r.actual or '(异常)' }}</code>
+            {% if r.get('error') %}<div style="color:var(--err);white-space:pre-wrap;font-size:.75rem;margin-top:.2rem">{{ r.error }}</div>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  <!-- 学生代码 -->
+  {% if ans.get('user') %}
+  <details style="margin-top:.5rem">
+    <summary style="cursor:pointer;font-size:.83rem;color:var(--muted);user-select:none">查看提交代码</summary>
+    <div class="code-wrap" style="margin-top:.5rem">
+      <div class="code-toolbar"><span>Python</span></div>
+      <pre class="code-area" style="height:auto;white-space:pre-wrap;overflow:auto;max-height:300px">{{ ans.get('user','') }}</pre>
+    </div>
+  </details>
+  {% endif %}
+  {% endif %}
+
+  <!-- 解析 -->
+  {% if q.explanation %}
+  <div style="margin-top:.85rem;padding:.65rem .9rem;background:#f8fafc;border-radius:7px;font-size:.83rem;color:var(--muted)">
+    💡 解析：{{ q.explanation }}
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+<div style="text-align:center;margin:2rem 0">
+  <a href="{{ url_for('student_dashboard') }}" class="btn bp">← 返回考试大厅</a>
+</div>
+{% endblock %}

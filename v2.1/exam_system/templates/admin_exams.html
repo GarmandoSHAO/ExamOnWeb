@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}考试管理{% endblock %}
+{% block content %}
+<div class="ph">
+  <div><h1>📋 考试管理</h1><p>共 {{ exams|length }} 个考试</p></div>
+  <a href="{{ url_for('admin_exam_edit') }}" class="btn bp">➕ 新建考试</a>
+</div>
+<div class="card">
+  <div class="tw">
+    <table>
+      <thead><tr><th>考试名称</th><th>题数</th><th>时长</th><th>及格</th><th>状态</th><th>创建者</th><th>创建时间</th><th>操作</th></tr></thead>
+      <tbody>
+        {% for e in exams %}
+        <tr>
+          <td>
+            <strong>{{ e.title }}</strong>
+            {% if e.description %}<div class="muted" style="margin-top:.15rem">{{ e.description[:45] }}{% if e.description|length>45 %}…{% endif %}</div>{% endif %}
+          </td>
+          <td>{{ e.qcount }} 题</td>
+          <td>{{ e.duration }}分</td>
+          <td>{{ e.pass_score }}%</td>
+          <td>
+            {% if e.status=='published' %}<span class="badge bv-g">● 已发布</span>
+            {% elif e.status=='closed' %}<span class="badge bv-s">■ 已关闭</span>
+            {% else %}<span class="badge bv-w">○ 草稿</span>{% endif %}
+          </td>
+          <td>{{ e.creator or '管理员' }}</td>
+          <td class="muted">{{ e.created_at[:10] }}</td>
+          <td>
+            <div class="flex gap1 fw">
+              <a href="{{ url_for('admin_exam_questions', exam_id=e.id) }}" class="btn bsec btn-xs">题目</a>
+              <a href="{{ url_for('admin_exam_edit', exam_id=e.id) }}" class="btn bsec btn-xs">编辑</a>
+              {% if e.status!='published' %}
+              <form method="POST" action="{{ url_for('admin_exam_status', exam_id=e.id, action='publish') }}" style="display:inline">
+                <button class="btn bg btn-xs">发布</button>
+              </form>
+              {% else %}
+              <form method="POST" action="{{ url_for('admin_exam_status', exam_id=e.id, action='close') }}" style="display:inline">
+                <button class="btn bw btn-xs">关闭</button>
+              </form>
+              {% endif %}
+              <form method="POST" action="{{ url_for('admin_exam_delete', exam_id=e.id) }}" style="display:inline"
+                    onsubmit="return confirm('确定删除「{{ e.title }}」及所有题目和记录？')">
+                <button class="btn br btn-xs">删除</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="empty"><div class="ico">📭</div><div>暂无考试</div><a href="{{ url_for('admin_exam_edit') }}" class="btn bp mt2" style="margin:1rem auto;display:inline-flex">创建第一个考试</a></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
