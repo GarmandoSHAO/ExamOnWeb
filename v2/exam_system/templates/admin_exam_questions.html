@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}题目管理 - {{ exam.title }}{% endblock %}
+{% block content %}
+<div class="ph">
+  <div>
+    <h1>📝 题目管理</h1>
+    <p>{{ exam.title }} · {{ questions|length }} 题 · 总分 {{ total_score }} 分</p>
+  </div>
+  <div class="flex gap1 fw">
+    <a href="{{ url_for('admin_exam_edit', exam_id=exam.id) }}" class="btn bsec btn-sm">✏️ 编辑考试</a>
+    <a href="{{ url_for('admin_question_edit', exam_id=exam.id) }}" class="btn bp">➕ 添加题目</a>
+  </div>
+</div>
+
+{% if questions %}
+{% for q in questions %}
+<div class="card" style="margin-bottom:.75rem">
+  <div class="card-bd" style="padding:1rem 1.2rem">
+    <div class="flex jb aic fw" style="gap:.5rem">
+      <div style="flex:1;min-width:0">
+        <div class="flex gap1 fw mb1">
+          <span class="badge bv-b">第 {{ loop.index }} 题</span>
+          <span class="badge {% if q.qtype=='coding' %}bv-p{% else %}bv-s{% endif %}">
+            {% if q.qtype=='single' %}单选{% elif q.qtype=='multi' %}多选{% elif q.qtype=='truefalse' %}判断{% elif q.qtype=='fillblank' %}填空{% else %}💻 编程{% endif %}
+          </span>
+          <span class="badge bv-w">{{ q.score }} 分</span>
+        </div>
+        <div style="font-size:.9rem;font-weight:500;white-space:pre-wrap;line-height:1.5">{{ q.content[:120] }}{% if q.content|length>120 %}…{% endif %}</div>
+        {% if q.qtype != 'coding' and q.options %}
+        <div class="flex gap1 fw" style="margin-top:.4rem">
+          {% for opt in q.options %}<span class="muted">{{ ['A','B','C','D'][loop.index0] }}:{{ opt }}</span>{% endfor %}
+        </div>
+        {% endif %}
+        {% if q.qtype == 'coding' and q.func_signature %}
+        <div style="font-family:monospace;font-size:.8rem;color:#7c3aed;margin-top:.35rem;background:#f5f3ff;padding:.25rem .6rem;border-radius:5px;display:inline-block">{{ q.func_signature }}</div>
+        {% endif %}
+        {% if q.qtype != 'coding' %}
+        <div style="margin-top:.4rem;font-size:.82rem;color:var(--ok);font-weight:600">✓ 答案：{{ q.answer }}</div>
+        {% else %}
+        <div style="margin-top:.4rem;font-size:.82rem;color:var(--muted)">固定用例：{{ q.test_cases|length if q.test_cases else 0 }} 个 · 随机用例：{{ q.num_random }} 个</div>
+        {% endif %}
+      </div>
+      <div class="flex gap1" style="flex-shrink:0">
+        <a href="{{ url_for('admin_question_edit', exam_id=exam.id, qid=q.id) }}" class="btn bsec btn-sm">编辑</a>
+        <form method="POST" action="{{ url_for('admin_question_delete', qid=q.id) }}" onsubmit="return confirm('确定删除？')">
+          <input type="hidden" name="back_to" value="exam">
+          <button class="btn br btn-sm">删除</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card"><div class="empty"><div class="ico">📭</div><div>还没有题目</div>
+  <a href="{{ url_for('admin_question_edit', exam_id=exam.id) }}" class="btn bp" style="margin-top:1rem;display:inline-flex">添加第一道题</a>
+</div></div>
+{% endif %}
+<a href="{{ url_for('admin_exams') }}" class="btn bsec">← 返回考试列表</a>
+{% endblock %}

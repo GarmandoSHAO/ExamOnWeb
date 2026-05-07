@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}{% if exam %}编辑考试{% else %}新建考试{% endif %}{% endblock %}
+{% block content %}
+<div class="ph">
+  <div><h1>{% if exam %}✏️ 编辑考试{% else %}➕ 新建考试{% endif %}</h1></div>
+  <a href="{{ url_for('admin_exams') }}" class="btn bsec">← 返回列表</a>
+</div>
+<div class="card" style="max-width:680px">
+  <div class="card-bd">
+    <form method="POST">
+      <div class="fg"><label>考试名称 *</label>
+        <input class="fc" name="title" value="{{ exam.title if exam else '' }}" placeholder="例：Python 基础知识测验" required>
+      </div>
+      <div class="fg"><label>考试描述</label>
+        <textarea class="fc" name="description" placeholder="简要描述考试内容…">{{ exam.description if exam else '' }}</textarea>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>考试时长（分钟）</label>
+          <input class="fc" type="number" name="duration" value="{{ exam.duration if exam else 60 }}" min="5" max="300">
+        </div>
+        <div class="fg"><label>及格线（%）</label>
+          <input class="fc" type="number" name="pass_score" value="{{ exam.pass_score if exam else 60 }}" min="1" max="100">
+        </div>
+      </div>
+      <div class="fg"><div class="fcheck">
+        <input type="checkbox" name="shuffle" id="sh" {% if not exam or exam.shuffle %}checked{% endif %}>
+        <label for="sh" style="margin:0;font-weight:400">随机打乱题目顺序（编程题始终排最后）</label>
+      </div></div>
+      <hr class="divider">
+      <div class="flex gap1">
+        <button type="submit" class="btn bp">💾 保存并管理题目</button>
+        <a href="{{ url_for('admin_exams') }}" class="btn bsec">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

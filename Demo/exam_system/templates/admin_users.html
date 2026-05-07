@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}用户管理{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>👥 用户管理</h1>
+  <p>管理所有注册用户</p>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>姓名</th><th>账号</th><th>角色</th><th>考试次数</th><th>注册时间</th><th>操作</th></tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td><strong>{{ u.name or u.username }}</strong></td>
+            <td style="color:#64748b">{{ u.username }}</td>
+            <td>
+              {% if u.role == 'admin' %}<span class="badge badge-info">管理员</span>
+              {% else %}<span class="badge badge-secondary">学生</span>{% endif %}
+            </td>
+            <td>{{ u.exam_count }}</td>
+            <td style="color:#64748b;font-size:.85rem">{{ u.created_at[:10] }}</td>
+            <td>
+              <div style="display:flex;gap:.35rem;align-items:center;flex-wrap:wrap">
+                <!-- 重置密码 -->
+                <form method="POST" action="{{ url_for('admin_reset_pw', uid=u.id) }}"
+                      style="display:flex;gap:.35rem;align-items:center"
+                      onsubmit="return confirm('确定重置「{{ u.name or u.username }}」的密码为输入值？')">
+                  <input class="form-control" name="new_pw" placeholder="新密码" style="width:100px;padding:.3rem .5rem;font-size:.8rem">
+                  <button class="btn btn-warning btn-sm">重置密码</button>
+                </form>
+                {% if u.id != session.user_id %}
+                <form method="POST" action="{{ url_for('admin_user_delete', uid=u.id) }}"
+                      onsubmit="return confirm('确定删除用户「{{ u.name or u.username }}」？此操作不可撤销！')">
+                  <button class="btn btn-danger btn-sm">删除</button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}考试大厅{% endblock %}
+{% block content %}
+<div class="ph">
+  <div><h1>🏠 考试大厅</h1><p>欢迎，{{ session.name }}！选择考试开始答题。</p></div>
+</div>
+{% if exams %}
+<div class="ex-grid">
+  {% for exam in exams %}
+  {% set rec = records.get(exam.id) %}
+  <div class="ex-card">
+    <div class="ex-card-hd">
+      <h3>{{ exam.title }}</h3>
+      <div style="font-size:.78rem;opacity:.85;margin-top:.35rem">{{ exam.description or '暂无描述' }}</div>
+    </div>
+    <div class="ex-card-bd">
+      <div class="ex-meta">
+        <span>⏱ {{ exam.duration }} 分钟</span>
+        <span>✅ 及格 {{ exam.pass_score }}%</span>
+      </div>
+      {% if rec and rec.finished_at %}
+        {% set pct = (rec.score/rec.total*100)|int if rec.total else 0 %}
+        <div style="background:var(--light);border-radius:8px;padding:.85rem;margin-bottom:.85rem">
+          <div class="flex jb aic mb1">
+            <span class="muted">上次成绩</span>
+            {% if rec.passed %}<span class="badge bv-g">✓ 通过</span>{% else %}<span class="badge bv-r">✗ 未通过</span>{% endif %}
+          </div>
+          <div style="font-size:1.4rem;font-weight:700">{{ rec.score }} / {{ rec.total }}</div>
+          <div class="pbar"><div class="pfill" style="width:{{ pct }}%"></div></div>
+        </div>
+        <div class="flex gap1">
+          <a href="{{ url_for('exam_result', record_id=rec.id) }}" class="btn bsec btn-sm" style="flex:1;justify-content:center">查看详情</a>
+          <a href="{{ url_for('start_exam', exam_id=exam.id) }}" class="btn bo btn-sm" style="flex:1;justify-content:center">再次作答</a>
+        </div>
+      {% elif rec and not rec.finished_at %}
+        <div class="badge bv-w mb1">⏸ 答题进行中</div>
+        <a href="{{ url_for('start_exam', exam_id=exam.id) }}" class="btn bw" style="width:100%;justify-content:center">继续作答</a>
+      {% else %}
+        <a href="{{ url_for('start_exam', exam_id=exam.id) }}" class="btn bp" style="width:100%;justify-content:center">开始答题 →</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="empty"><div class="ico">📭</div><div>暂无可用考试</div></div></div>
+{% endif %}
+{% endblock %}

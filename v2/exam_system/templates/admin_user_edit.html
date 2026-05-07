@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}编辑用户 - {{ user.name }}{% endblock %}
+{% block content %}
+<div class="ph">
+  <div><h1>✏️ 编辑用户</h1><p>{{ user.name or user.username }}（{{ user.username }}）</p></div>
+  <a href="{{ url_for('admin_users') }}" class="btn bsec">← 返回</a>
+</div>
+<div class="card" style="max-width:500px">
+  <div class="card-bd">
+    <form method="POST">
+      <div class="fg"><label>姓名</label>
+        <input class="fc" name="name" value="{{ user.name or '' }}" placeholder="真实姓名">
+      </div>
+      <div class="fg"><label>用户名（不可修改）</label>
+        <input class="fc" value="{{ user.username }}" disabled style="background:var(--light);color:var(--muted)">
+      </div>
+      <div class="fg"><label>新密码（留空不修改）</label>
+        <input class="fc" name="password" type="password" placeholder="留空则保持原密码不变">
+      </div>
+      <div class="fg"><label>角色</label>
+        <select class="fc" name="role">
+          <option value="student" {% if user.role=='student' %}selected{% endif %}>学生</option>
+          <option value="admin"   {% if user.role=='admin'   %}selected{% endif %}>管理员</option>
+        </select>
+        {% if user.id == session.user_id %}
+        <div class="muted mt1">⚠️ 不能修改自己的角色</div>
+        {% endif %}
+      </div>
+      <hr class="divider">
+      <div class="flex gap1">
+        <button type="submit" class="btn bp">保存修改</button>
+        <a href="{{ url_for('admin_users') }}" class="btn bsec">取消</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

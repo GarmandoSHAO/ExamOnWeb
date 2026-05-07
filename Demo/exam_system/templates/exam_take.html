@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}{{ exam.title }} - 答题{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem">
+  <div>
+    <h1 style="font-size:1.4rem;color:#1e293b">{{ exam.title }}</h1>
+    <p style="color:#64748b;font-size:.9rem">共 {{ questions|length }} 题 · 总分 {{ questions|sum(attribute='score') }} 分</p>
+  </div>
+  <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:.5rem 1.25rem;border-radius:30px;color:#fff;display:flex;align-items:center;gap:.5rem">
+    ⏱ 剩余时间：<strong id="timer">--:--</strong>
+  </div>
+</div>
+
+<form method="POST" action="{{ url_for('submit_exam', record_id=record.id) }}" id="examForm">
+  {% for q in questions %}
+  <div class="question-card" id="qcard_{{ loop.index }}">
+    <div class="question-number">
+      第 {{ loop.index }} 题 ·
+      {% if q.qtype=='single' %}单选题
+      {% elif q.qtype=='multi' %}多选题
+      {% elif q.qtype=='truefalse' %}判断题
+      {% else %}填空题{% endif %}
+      · {{ q.score }} 分
+    </div>
+    <div class="question-content">{{ q.content }}</div>
+
+    {% if q.qtype == 'single' or q.qtype == 'truefalse' %}
+    <div class="options">
+      {% for opt in q.options %}
+      <label class="option-label">
+        <input type="radio" name="q_{{ q.id }}" value="{{ ['A','B','C','D'][loop.index0] }}" required>
+        <span class="pill">{{ ['A','B','C','D'][loop.index0] }}</span>
+        {{ opt }}
+      </label>
+      {% endfor %}
+    </div>
+
+    {% elif q.qtype == 'multi' %}
+    <div class="options" style="font-size:.8rem;color:#7c3aed;margin-bottom:.5rem">（多选，请选择所有正确选项）</div>
+    <div class="options">
+      {% for opt in q.options %}
+      <label class="option-label">
+        <input type="checkbox" name="m_{{ q.id }}" value="{{ ['A','B','C','D'][loop.index0] }}">
+        <span class="pill">{{ ['A','B','C','D'][loop.index0] }}</span>
+        {{ opt }}
+      </label>
+      {% endfor %}
+    </div>
+
+    {% elif q.qtype == 'fillblank' %}
+    <input class="form-control" name="q_{{ q.id }}" placeholder="请输入答案" style="max-width:300px" required>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="card">
+    <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+      <div>
+        <div id="progress-text" style="font-size:.9rem;color:#64748b">已作答 <strong id="answered-count">0</strong> / {{ questions|length }} 题</div>
+        <div class="progress-bar" style="width:200px"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary" onclick="return confirm('确定要退出吗？当前进度不会保存！')">退出</a>
+        <button type="submit" class="btn btn-success" onclick="return confirmSubmit()">📤 提交答卷</button>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+// 倒计时
+const duration = {{ exam.duration }} * 60;
+const startedAt = new Date("{{ record.started_at }}".replace(' ','T'));
+let remaining = duration - Math.floor((Date.now() - startedAt.getTime()) / 1000);
+
+function updateTimer() {
+  if (remaining <= 0) {
+    document.getElementById('examForm').submit();
+    return;
+  }
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  const el = document.getElementById('timer');
+  el.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  if (remaining <= 300) el.style.color = '#fca5a5';
+  if (remaining <= 60)  el.style.fontWeight = '800';
+  remaining--;
+}
+updateTimer();
+setInterval(updateTimer, 1000);
+
+// 进度追踪
+const total = {{ questions|length }};
+function updateProgress() {
+  let answered = 0;
+  {% for q in questions %}
+  {% if q.qtype == 'multi' %}
+  if (document.querySelectorAll('input[name="m_{{ q.id }}"]:checked').length > 0) answered++;
+  {% elif q.qtype == 'fillblank' %}
+  if ((document.querySelector('input[name="q_{{ q.id }}"]')?.value||'').trim()) answered++;
+  {% else %}
+  if (document.querySelector('input[name="q_{{ q.id }}"]:checked')) answered++;
+  {% endif %}
+  {% endfor %}
+  document.getElementById('answered-count').textContent = answered;
+  document.getElementById('progress-fill').style.width = (answered/total*100)+'%';
+}
+document.getElementById('examForm').addEventListener('change', updateProgress);
+document.getElementById('examForm').addEventListener('input', updateProgress);
+updateProgress();
+
+function confirmSubmit() {
+  const count = parseInt(document.getElementById('answered-count').textContent);
+  if (count < total) {
+    return confirm(`还有 ${total - count} 道题未作答，确定提交？`);
+  }
+  return confirm('确定提交答卷？');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}成绩管理{% endblock %}
+{% block content %}
+<div class="ph"><div><h1>📈 成绩管理</h1><p>查看所有学生考试成绩</p></div></div>
+
+<div class="card">
+  <div class="search-bar">
+    <form method="GET" class="flex gap1 fw" style="width:100%">
+      <select name="exam_id" class="fc" style="max-width:220px">
+        <option value="">全部考试</option>
+        {% for e in exams %}<option value="{{ e.id }}" {% if sel_exam==e.id %}selected{% endif %}>{{ e.title }}</option>{% endfor %}
+      </select>
+      <select name="user_id" class="fc" style="max-width:180px">
+        <option value="">全部学生</option>
+        {% for u in users %}<option value="{{ u.id }}" {% if sel_user==u.id %}selected{% endif %}>{{ u.name }}({{ u.username }})</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn bp btn-sm">筛选</button>
+      <a href="{{ url_for('admin_records') }}" class="btn bsec btn-sm">重置</a>
+      <span class="muted" style="margin-left:.5rem;align-self:center">共 {{ records|length }} 条</span>
+    </form>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>学生</th><th>账号</th><th>考试</th><th>得分</th><th>得分率</th><th>结果</th><th>用时</th><th>完成时间</th><th>详情</th></tr></thead>
+      <tbody>
+        {% for r in records %}
+        {% set pct = (r.score/r.total*100)|int if r.total else 0 %}
+        <tr>
+          <td><strong>{{ r.uname }}</strong></td>
+          <td class="muted">{{ r.username }}</td>
+          <td>{{ r.etitle }}</td>
+          <td><strong>{{ r.score }}</strong>/{{ r.total }}</td>
+          <td>
+            <div class="flex aic gap1">
+              <div class="pbar" style="width:70px"><div class="pfill" style="width:{{ pct }}%"></div></div>
+              <span class="muted">{{ pct }}%</span>
+            </div>
+          </td>
+          <td>{% if r.passed %}<span class="badge bv-g">✓ 通过</span>{% else %}<span class="badge bv-r">✗ 未通过</span>{% endif %}</td>
+          <td class="muted">{{ r.time_used//60 }}分{{ r.time_used%60 }}秒</td>
+          <td class="muted" style="font-size:.8rem">{{ r.finished_at }}</td>
+          <td><a href="{{ url_for('admin_record_detail', rid=r.id) }}" class="btn bsec btn-xs">查看</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" class="empty" style="padding:2.5rem">暂无成绩记录</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
